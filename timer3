@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Condiments Tracking</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --border: #d9e0ea;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --primary-soft: #dbeafe;
+      --danger: #dc2626;
+      --success-soft: #ecfdf5;
+      --warn-soft: #fef3c7;
+      --alert-soft: #fdba74;
+      --digital-bg: #111827;
+      --digital-text: #ffffff;
+      --btn-soft: #eef2f7;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body { font-size: 16px; }
+
+    .app { width: 100vw; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar { padding: 8px 12px; border-bottom: 1px solid var(--border); background: #fff; flex: 0 0 auto; }
+    .topbar-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .left-head { display: flex; flex-direction: column; gap: 2px; }
+    .app-title { font-size: 30px; font-weight: 800; line-height: 1.05; }
+    .app-subtitle { font-size: 15px; color: var(--muted); }
+    .topbar-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .top-pill, .top-btn, .mini-btn {
+      height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: #fff; font-size: 15px; font-weight: 700; display: inline-flex;
+      align-items: center; justify-content: center; white-space: nowrap; cursor: pointer;
+    }
+    .top-btn.primary, .mini-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .top-btn.danger, .mini-btn.danger { color: #b91c1c; }
+
+    .day-banner {
+      margin: 8px 12px 6px; background: #111827; color: white; border-radius: 8px;
+      text-align: center; font-size: 16px; font-weight: 700; padding: 6px 10px; flex: 0 0 auto;
+    }
+
+    .grid-wrap { flex: 1 1 auto; min-height: 0; padding: 0 10px 10px; }
+    .timer-grid {
+      width: 100%; height: 100%; display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-rows: repeat(4, minmax(0, 1fr)); gap: 8px;
+    }
+
+    .timer-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 8px; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
+    }
+    .timer-card.active { background: var(--success-soft); }
+    .timer-card.warn { background: var(--warn-soft); }
+    .timer-card.alert { background: var(--alert-soft); }
+    .timer-card.expired {
+      background: #ffd5d5; border-color: #dc2626; animation: expiredFlash 1s infinite;
+    }
+    .timer-card.expired.overdue-hard {
+      background: #ef4444; border-color: #991b1b; animation: overdueHardPulse 0.9s infinite;
+    }
+    @keyframes expiredFlash {
+      0%, 100% { background: #ffd5d5; box-shadow: 0 0 0 rgba(220,38,38,0); }
+      50% { background: #ff8f8f; box-shadow: 0 0 0 3px rgba(220,38,38,0.18) inset; }
+    }
+    @keyframes overdueHardPulse {
+      0%, 100% { background: #ef4444; box-shadow: 0 0 0 rgba(127,29,29,0); }
+      50% { background: #b91c1c; box-shadow: 0 0 0 4px rgba(127,29,29,0.22) inset; }
+    }
+
+    .timer-name {
+      font-size: 26px;
+      font-size: 20px; font-weight: 800; line-height: 1.05; min-height: 40px;
+      margin-bottom: 3px; display: flex; align-items: flex-start; word-break: break-word; overflow: hidden;
+    }
+    .timer-meta { display: grid; grid-template-columns: 1fr; gap: 1px; margin-bottom: 6px; min-height: 28px; flex: 0 0 auto; }
+    .timer-info {
+      font-size: 14px;
+      font-size: 12px; line-height: 1.15; color: #4b5563; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .timer-info strong { color: #111827; font-weight: 700; }
+    .timer-card.expired.overdue-hard .timer-name,
+    .timer-card.expired.overdue-hard .timer-info,
+    .timer-card.expired.overdue-hard .timer-info strong { color: #fff; }
+
+    .timer-digital {
+      margin: 10px auto 8px;
+      margin: 4px auto 6px; width: 96%; height: 42px; border-radius: 10px;
+      background: var(--digital-bg); color: var(--digital-text); display: flex;
+      align-items: center; justify-content: center; font-size: 26px; font-weight: 800;
+      letter-spacing: 0.5px; font-variant-numeric: tabular-nums;
+      font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.05); flex: 0 0 auto; text-transform: uppercase;
+    }
+    .timer-digital.idle {
+      background: #eef2f7; color: #6b7280; border: 2px solid #cfd8e3; box-shadow: none;
+    }
+    .timer-digital.warn { background: #f59e0b; color: #111827; }
+    .timer-digital.alert { background: #ea580c; color: #fff; }
+    .timer-digital.expired { background: #dc2626; color: #fff; }
+    .timer-digital.expired.overdue-hard { background: #7f1d1d; color: #fff; }
+
+    .timer-actions { margin-top: auto; display: none; }
+    .card-hint {
+      font-size: 12px;
+      margin-top: auto;
+      font-size: 11px;
+      line-height: 1.1;
+      color: #6b7280;
+      text-align: center;
+      padding-top: 4px;
+      user-select: none;
+    }
+    .timer-card.expired.overdue-hard .card-hint {
+      font-size: 12px; color: rgba(255,255,255,0.92); }
+    .timer-card.tap-active {
+      transform: scale(0.985);
+      transition: transform 0.08s ease;
+    }
+
+    .overlay {
+      position: fixed; inset: 0; background: rgba(17,24,39,0.34); display: none;
+      align-items: center; justify-content: center; z-index: 20; padding: 16px;
+    }
+    .overlay.open { display: flex; }
+
+    .modal {
+      width: min(1120px, 96vw); height: min(88vh, 900px); background: #fff;
+      border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 16px 50px rgba(0,0,0,0.18);
+      padding: 16px; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .modal-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; flex: 0 0 auto; }
+    .modal-title { font-size: 22px; font-weight: 800; }
+    .modal-subtitle { font-size: 13px; color: var(--muted); margin-top: 3px; }
+    .settings-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; flex: 0 0 auto; }
+    .sound-box {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      border: 1px solid var(--border); border-radius: 12px; background: #f9fbff;
+    }
+    .sound-label { font-size: 14px; font-weight: 700; }
+
+    .settings-list { overflow: auto; border: 1px solid #edf2f7; border-radius: 12px; flex: 1 1 auto; min-height: 0; }
+    .settings-grid { display: grid; grid-template-columns: 72px 1.6fr 1.3fr; gap: 8px; padding: 10px; align-items: center; }
+    .settings-head {
+      position: sticky; top: 0; background: #f8fafc; z-index: 2; border-bottom: 1px solid #e5e7eb;
+      font-size: 13px; font-weight: 800;
+    }
+    .settings-row { border-top: 1px solid #f1f5f9; }
+    .settings-row:first-child { border-top: none; }
+    .cell-label { font-size: 14px; font-weight: 700; color: #111827; }
+    .field {
+      width: 100%; height: 40px; border: 1px solid #cfd8e3; border-radius: 10px;
+      padding: 0 12px; font-size: 15px; background: #fff;
+    }
+    .duration-editor { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .picker-group { display: flex; align-items: center; gap: 5px; }
+    .wheel {
+      width: 78px; height: 42px; border: 1px solid #cfd8e3; border-radius: 10px;
+      padding: 0 8px; font-size: 15px; background: #fff; -webkit-appearance: menulist; appearance: auto;
+    }
+    .time-suffix { font-size: 13px; font-weight: 700; color: #4b5563; min-width: max-content; }
+    .modal-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; flex: 0 0 auto; }
+    .modal-actions-right { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .switch {
+      position: relative; width: 58px; height: 32px; border-radius: 20px; background: #cbd5e1;
+      cursor: pointer; transition: 0.2s; border: none; padding: 0;
+    }
+    .switch.on { background: #22c55e; }
+    .switch::after {
+      content: ""; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px;
+      border-radius: 50%; background: white; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .switch.on::after { left: 30px; }
+
+    @media (max-width: 1200px), (max-height: 820px) {
+      .app-title { font-size: 28px; }
+      .top-pill, .top-btn { height: 36px; font-size: 14px; }
+      .timer-name {
+      font-size: 26px; font-size: 18px; min-height: 36px; }
+      .timer-meta { min-height: 26px; }
+      .timer-info {
+      font-size: 14px; font-size: 11px; }
+      .timer-digital {
+      margin: 10px auto 8px; font-size: 22px; height: 40px; }
+      .card-hint {
+      font-size: 12px; font-size: 10px; }
+      .settings-grid { grid-template-columns: 58px 1.4fr 1.4fr; }
+      .field, .wheel { height: 36px; font-size: 14px; }
+      .wheel { width: 68px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div class="left-head">
+          <div class="app-title">Condiments Tracking</div>
+          <div class="app-subtitle" id="liveClock">--</div>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="top-pill" id="countActive">Active 0</div>
+          <div class="top-pill" id="countSoon">Warn 0</div>
+          <div class="top-pill" id="countExpired">Expired 0</div>
+          <button class="top-btn" id="soundBtn">Sound ON</button>
+          <button class="top-btn" id="settingsBtn">Settings</button>
+          <button class="top-btn danger" onclick="clearExpired()">Clear Expired</button>
+          <button class="top-btn primary" onclick="resetAll()">Reset All</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-banner" id="dayBanner">Today</div>
+
+    <div class="grid-wrap">
+      <div class="timer-grid" id="timerGrid"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="settingsOverlay">
+    <div class="modal">
+      <div class="modal-top">
+        <div>
+          <div class="modal-title">Settings</div>
+          <div class="modal-subtitle">Edit product names and durations here. Product positions stay fixed so staff do not need to search.</div>
+        </div>
+        <button class="top-btn" onclick="closeSettings()">Close</button>
+      </div>
+
+      <div class="settings-toolbar">
+        <div class="sound-box">
+          <div class="sound-label">Expiry Sound</div>
+          <button class="switch on" id="settingsSoundSwitch" aria-label="Toggle sound"></button>
+          <button class="mini-btn primary" onclick="testSound()">Test Sound</button>
+        </div>
+      </div>
+
+      <div class="settings-list">
+        <div class="settings-grid settings-head">
+          <div>#</div>
+          <div>Product Name</div>
+          <div>Duration</div>
+        </div>
+        <div id="settingsRows"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="mini-btn danger" onclick="restoreDefaults()">Restore Defaults</button>
+        <div class="modal-actions-right">
+          <button class="mini-btn" onclick="closeSettings()">Cancel</button>
+          <button class="mini-btn primary" onclick="saveSettings()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const defaultItems = [
+      { id: '1', name: 'Teen Sauce', durationMin: 240 },
+      { id: '2', name: 'Mozza Sauce', durationMin: 240 },
+      { id: '3', name: 'Chubby Mayo', durationMin: 240 },
+      { id: '4', name: 'Mustard', durationMin: 240 },
+      { id: '5', name: 'Ketchup', durationMin: 240 },
+      { id: '6', name: 'Spicy Sauce', durationMin: 240 },
+      { id: '7', name: 'Chipotle', durationMin: 240 },
+      { id: '8', name: 'Piri Piri', durationMin: 120 },
+      { id: '9', name: 'Nashville', durationMin: 120 },
+      { id: '10', name: 'Pickle', durationMin: 120 },
+      { id: '11', name: 'Red Onion', durationMin: 120 },
+      { id: '12', name: 'White Onion', durationMin: 120 },
+      { id: '13', name: 'Lettuce', durationMin: 120 },
+      { id: '14', name: 'Tomatoes', durationMin: 120 },
+      { id: '15', name: 'Mozzarella Cheese', durationMin: 240 },
+      { id: '16', name: 'Cheddar Cheese', durationMin: 240 },
+      { id: '17', name: 'Seasonal 1', durationMin: 240 },
+      { id: '18', name: 'Seasonal 2', durationMin: 240 },
+      { id: '19', name: 'Seasonal 3', durationMin: 240 },
+      { id: '20', name: 'Seasonal 4', durationMin: 240 }
+    ];
+
+    let soundOn = true;
+    const alerted = {};
+    const now = Date.now();
+
+    let items = defaultItems.map((x, i) => ({
+      ...x,
+      startedAt: i < 4 ? now - 10 * 60 * 1000 : (i === 7 ? now - 10 * 60 * 1000 : null)
+    }));
+
+    function clamp(val, min, max) { return Math.min(max, Math.max(min, val)); }
+    function clampDuration(minutes) { return clamp(minutes, 0, 780); }
+
+    function saveToStorage() {
+      const settings = items.map(({ id, name, durationMin }) => ({ id, name, durationMin }));
+      localStorage.setItem('foodTimerSettingsV5', JSON.stringify(settings));
+      localStorage.setItem('foodTimerSoundV5', JSON.stringify(soundOn));
+    }
+
+    function loadFromStorage() {
+      try {
+        const saved = JSON.parse(localStorage.getItem('foodTimerSettingsV5') || 'null');
+        if (Array.isArray(saved) && saved.length === items.length) {
+          items = items.map(item => {
+            const found = saved.find(x => x.id === item.id);
+            return found ? {
+              ...item,
+              name: found.name || item.name,
+              durationMin: clampDuration(Number(found.durationMin) || item.durationMin)
+            } : item;
+          });
+        }
+      } catch (e) {}
+
+      try {
+        soundOn = !!JSON.parse(localStorage.getItem('foodTimerSoundV5') || 'true');
+      } catch (e) {}
+    }
+
+    function formatRemainingTime(totalSeconds) {
+      if (totalSeconds === null || totalSeconds === undefined || totalSeconds < 0) return '--:--:--';
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      return [hours, minutes, seconds].map(v => String(v).padStart(2, '0')).join(':');
+    }
+
+    function formatShortDuration(durationMin) {
+      if (durationMin < 60) return `${durationMin} MINS`;
+      if (durationMin % 60 === 0) return `${durationMin / 60}H`;
+      const h = Math.floor(durationMin / 60);
+      const m = durationMin % 60;
+      return `${h}H ${m}M`;
+    }
+
+    function formatClockTime(ts) {
+      if (!ts) return '--';
+      const d = new Date(ts);
+      let hh = d.getHours();
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const suffix = hh >= 12 ? 'PM' : 'AM';
+      hh = hh % 12;
+      if (hh === 0) hh = 12;
+      return `${hh}:${mm} ${suffix}`;
+    }
+
+    function formatExpiredBy(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function formatLiveHeader() {
+      const d = new Date();
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      let hh = d.getHours();
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      const suffix = hh >= 12 ? 'PM' : 'AM';
+      hh = hh % 12;
+      if (hh === 0) hh = 12;
+      document.getElementById('liveClock').textContent = `${months[d.getMonth()]} ${d.getDate()}, ${days[d.getDay()]} · ${hh}:${mm}:${ss} ${suffix}`;
+      document.getElementById('dayBanner').textContent = `Today, ${months[d.getMonth()]} ${d.getDate()} · ${days[d.getDay()]}`;
+    }
+
+    function getItemState(item) {
+      const durationSec = item.durationMin * 60;
+      if (!item.startedAt) {
+        return { isActive: false, level: 'idle', remainingSeconds: null, overdueSeconds: 0, isExpired: false };
+      }
+
+      const elapsed = Math.max(0, Math.floor((Date.now() - item.startedAt) / 1000));
+      const remainingSeconds = Math.max(0, durationSec - elapsed);
+      const isExpired = elapsed >= durationSec;
+      const overdueSeconds = isExpired ? elapsed - durationSec : 0;
+
+      if (isExpired) {
+        return { isActive: false, level: overdueSeconds >= 5 * 60 ? 'expired-hard' : 'expired', remainingSeconds: 0, overdueSeconds, isExpired: true };
+      }
+
+      const ratio = durationSec === 0 ? 0 : remainingSeconds / durationSec;
+      let level = 'active';
+      if (ratio <= 0.1) level = 'alert';
+      else if (ratio <= 0.2) level = 'warn';
+
+      return { isActive: true, level, remainingSeconds, overdueSeconds: 0, isExpired: false };
+    }
+
+    let audioCtx = null;
+    let audioUnlocked = false;
+
+    async function ensureAudioReady() {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return false;
+
+      try {
+        if (!audioCtx) audioCtx = new AudioCtx();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+        // Tiny silent buffer to help unlock audio on iPad/Safari after a user action
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        gain.gain.value = 0.00001;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const start = audioCtx.currentTime;
+        osc.start(start);
+        osc.stop(start + 0.01);
+
+        audioUnlocked = true;
+        return true;
+      } catch (e) {
+        console.log('Audio not ready yet.', e);
+        return false;
+      }
+    }
+
+    async function playBeep(times = 1) {
+      if (!soundOn) return;
+      const ok = await ensureAudioReady();
+      if (!ok || !audioCtx) return;
+
+      try {
+        for (let i = 0; i < times; i++) {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = 1100;
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          const start = audioCtx.currentTime + i * 0.32;
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.exponentialRampToValueAtTime(0.18, start + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.20);
+          osc.start(start);
+          osc.stop(start + 0.22);
+        }
+      } catch (e) {
+        console.log('Sound blocked or unavailable.', e);
+      }
+    }
+
+    function syncSoundUI() {
+      document.getElementById('soundBtn').textContent = soundOn ? 'Sound ON' : 'Sound OFF';
+      document.getElementById('settingsSoundSwitch').classList.toggle('on', soundOn);
+    }
+
+    function buildOptions(max, selectedValue) {
+      let html = '';
+      for (let i = 0; i <= max; i++) {
+        html += `<option value="${i}" ${i === selectedValue ? 'selected' : ''}>${i}</option>`;
+      }
+      return html;
+    }
+
+    function openSettings() {
+      renderSettingsRows();
+      document.getElementById('settingsOverlay').classList.add('open');
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsOverlay').classList.remove('open');
+    }
+
+    function renderSettingsRows() {
+      const wrap = document.getElementById('settingsRows');
+      wrap.innerHTML = items.map((item, idx) => {
+        const hours = Math.floor(item.durationMin / 60);
+        const mins = item.durationMin % 60;
+        return `
+          <div class="settings-grid settings-row">
+            <div class="cell-label">${idx + 1}</div>
+            <div><input class="field" data-id="${item.id}" data-type="name" value="${escapeHtml(item.name)}" /></div>
+            <div class="duration-editor">
+              <div class="picker-group">
+                <select class="wheel" data-id="${item.id}" data-type="hour">${buildOptions(12, hours)}</select>
+                <span class="time-suffix">H</span>
+              </div>
+              <div class="picker-group">
+                <select class="wheel" data-id="${item.id}" data-type="minute">${buildOptions(60, mins)}</select>
+                <span class="time-suffix">MINS</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function readSettingsForm() {
+      const nameInputs = [...document.querySelectorAll('[data-type="name"]')];
+      const hourInputs = [...document.querySelectorAll('[data-type="hour"]')];
+      const nameMap = Object.fromEntries(nameInputs.map(el => [el.dataset.id, el.value.trim()]));
+      const durationMap = {};
+
+      hourInputs.forEach(h => {
+        const id = h.dataset.id;
+        const mEl = document.querySelector(`[data-type="minute"][data-id="${id}"]`);
+        const hVal = clamp(Number(h.value || 0), 0, 12);
+        const mVal = clamp(Number(mEl?.value || 0), 0, 60);
+        durationMap[id] = clampDuration(hVal * 60 + mVal);
+      });
+
+      items = items.map(item => ({
+        ...item,
+        name: nameMap[item.id] || item.name,
+        durationMin: durationMap[item.id] ?? item.durationMin
+      }));
+    }
+
+    function saveSettings() {
+      readSettingsForm();
+      saveToStorage();
+      closeSettings();
+      renderAllTimers();
+    }
+
+    function restoreDefaults() {
+      items = items.map(item => {
+        const found = defaultItems.find(x => x.id === item.id);
+        return found ? { ...item, name: found.name, durationMin: found.durationMin } : item;
+      });
+      renderSettingsRows();
+    }
+
+    async function testSound() { await ensureAudioReady(); await playBeep(2); }
+
+    function toggleSound() {
+      soundOn = !soundOn;
+      syncSoundUI();
+      saveToStorage();
+    }
+
+    function renderTimerCard(item) {
+      const state = getItemState(item);
+      let cardClass = 'timer-card';
+      let digitalClass = 'timer-digital';
+
+      if (state.level === 'idle') {
+        digitalClass += ' idle';
+      } else if (state.level === 'active') {
+        cardClass += ' active';
+      } else if (state.level === 'warn') {
+        cardClass += ' warn';
+        digitalClass += ' warn';
+      } else if (state.level === 'alert') {
+        cardClass += ' alert';
+        digitalClass += ' alert';
+      } else if (state.level === 'expired') {
+        cardClass += ' expired';
+        digitalClass += ' expired';
+      } else if (state.level === 'expired-hard') {
+        cardClass += ' expired overdue-hard';
+        digitalClass += ' expired overdue-hard';
+      }
+
+      const statusText = state.isExpired ? `Expired by ${formatExpiredBy(state.overdueSeconds)}` : '';
+      const digitalText = state.isExpired ? 'EXPIRED' : formatRemainingTime(state.remainingSeconds);
+
+      let hintText = 'Tap to start';
+      if (state.level === 'idle') hintText = 'Tap to start · Double tap to clear';
+      else if (state.isExpired) hintText = 'Tap to reset · Double tap to clear';
+      else hintText = 'Tap to reset · Double tap to clear';
+
+      return `
+        <div class="${cardClass}" data-card-id="${item.id}">
+          <div class="timer-name">${escapeHtml(item.name)}</div>
+          <div class="timer-meta">
+            <div class="timer-info"><strong>${formatShortDuration(item.durationMin)}</strong> · ${statusText}</div>
+            <div class="timer-info">Started: ${formatClockTime(item.startedAt)}</div>
+          </div>
+          <div class="${digitalClass}">${digitalText}</div>
+          <div class="card-hint">${hintText}</div>
+        </div>
+      `;
+    }
+
+    function checkExpiryAlerts() {
+      for (const item of items) {
+        const state = getItemState(item);
+        if (state.isExpired && !alerted[item.id]) {
+          alerted[item.id] = true;
+          playBeep(3);
+        }
+        if (!state.isExpired) alerted[item.id] = false;
+      }
+    }
+
+    function renderAllTimers() {
+      document.getElementById('timerGrid').innerHTML = items.map(renderTimerCard).join('');
+      updateCounts();
+      checkExpiryAlerts();
+    }
+
+    function updateCounts() {
+      let active = 0, warn = 0, expired = 0;
+      for (const item of items) {
+        const state = getItemState(item);
+        if (state.isExpired) expired++;
+        else if (state.level === 'warn' || state.level === 'alert') { active++; warn++; }
+        else if (state.level === 'active') active++;
+      }
+      document.getElementById('countActive').textContent = `Active ${active}`;
+      document.getElementById('countSoon').textContent = `Warn ${warn}`;
+      document.getElementById('countExpired').textContent = `Expired ${expired}`;
+    }
+
+    function activateTimer(id) {
+      const item = items.find(x => x.id === id);
+      if (!item) return;
+      item.startedAt = Date.now();
+      alerted[id] = false;
+      renderAllTimers();
+    }
+
+    function resetTimer(id) {
+      const item = items.find(x => x.id === id);
+      if (!item) return;
+      item.startedAt = Date.now();
+      alerted[id] = false;
+      renderAllTimers();
+    }
+
+    function clearTimer(id) {
+      const item = items.find(x => x.id === id);
+      if (!item) return;
+      item.startedAt = null;
+      alerted[id] = false;
+      renderAllTimers();
+    }
+
+    function clearExpired() {
+      for (const item of items) {
+        if (getItemState(item).isExpired) {
+          item.startedAt = null;
+          alerted[item.id] = false;
+        }
+      }
+      renderAllTimers();
+    }
+
+    function resetAll() {
+      for (const item of items) {
+        item.startedAt = null;
+        alerted[item.id] = false;
+      }
+      renderAllTimers();
+    }
+
+
+    let lastTap = { id: null, time: 0 };
+
+    function handleCardTap(id) {
+      const item = items.find(x => x.id === id);
+      if (!item) return;
+
+      const nowTap = Date.now();
+      const isDouble = lastTap.id === id && (nowTap - lastTap.time) < 350;
+      lastTap = { id, time: nowTap };
+
+      if (isDouble) {
+        clearTimer(id);
+        lastTap = { id: null, time: 0 };
+        return;
+      }
+
+      const state = getItemState(item);
+      if (state.level === 'idle') activateTimer(id);
+      else resetTimer(id);
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    async function unlockAudioFromGesture() {
+      if (!audioUnlocked) {
+        await ensureAudioReady();
+      }
+    }
+
+    document.getElementById('soundBtn').addEventListener('click', async () => { await unlockAudioFromGesture(); toggleSound(); });
+    document.getElementById('settingsBtn').addEventListener('click', async () => { await unlockAudioFromGesture(); openSettings(); });
+    document.getElementById('settingsSoundSwitch').addEventListener('click', async () => { await unlockAudioFromGesture(); toggleSound(); });
+    document.getElementById('settingsOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'settingsOverlay') closeSettings();
+    });
+    document.getElementById('timerGrid').addEventListener('click', async (e) => {
+      const card = e.target.closest('[data-card-id]');
+      if (!card) return;
+      await unlockAudioFromGesture();
+      card.classList.add('tap-active');
+      setTimeout(() => card.classList.remove('tap-active'), 90);
+      handleCardTap(card.dataset.cardId);
+    });
+
+    document.body.addEventListener('pointerdown', unlockAudioFromGesture, { passive: true });
+    loadFromStorage();
+    syncSoundUI();
+    formatLiveHeader();
+    renderAllTimers();
+    setInterval(() => {
+      formatLiveHeader();
+      renderAllTimers();
+    }, 1000);
+  </script>
+</body>
+</html>
