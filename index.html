@@ -81,13 +81,11 @@
     }
 
     .timer-name {
-      font-size: 26px;
-      font-size: 20px; font-weight: 800; line-height: 1.05; min-height: 40px;
+      font-size: 28px; font-weight: 800; line-height: 1.05; min-height: 40px;
       margin-bottom: 3px; display: flex; align-items: flex-start; word-break: break-word; overflow: hidden;
     }
     .timer-meta { display: grid; grid-template-columns: 1fr; gap: 1px; margin-bottom: 6px; min-height: 28px; flex: 0 0 auto; }
     .timer-info {
-      font-size: 14px;
       font-size: 12px; line-height: 1.15; color: #4b5563; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .timer-info strong { color: #111827; font-weight: 700; }
@@ -96,8 +94,7 @@
     .timer-card.expired.overdue-hard .timer-info strong { color: #fff; }
 
     .timer-digital {
-      margin: 10px auto 8px;
-      margin: 4px auto 6px; width: 96%; height: 42px; border-radius: 10px;
+      margin: 12px auto 8px; width: 96%; height: 42px; border-radius: 10px;
       background: var(--digital-bg); color: var(--digital-text); display: flex;
       align-items: center; justify-content: center; font-size: 26px; font-weight: 800;
       letter-spacing: 0.5px; font-variant-numeric: tabular-nums;
@@ -114,7 +111,6 @@
 
     .timer-actions { margin-top: auto; display: none; }
     .card-hint {
-      font-size: 12px;
       margin-top: auto;
       font-size: 11px;
       line-height: 1.1;
@@ -123,8 +119,7 @@
       padding-top: 4px;
       user-select: none;
     }
-    .timer-card.expired.overdue-hard .card-hint {
-      font-size: 12px; color: rgba(255,255,255,0.92); }
+    .timer-card.expired.overdue-hard .card-hint { color: rgba(255,255,255,0.92); }
     .timer-card.tap-active {
       transform: scale(0.985);
       transition: transform 0.08s ease;
@@ -188,15 +183,11 @@
     @media (max-width: 1200px), (max-height: 820px) {
       .app-title { font-size: 28px; }
       .top-pill, .top-btn { height: 36px; font-size: 14px; }
-      .timer-name {
-      font-size: 26px; font-size: 18px; min-height: 36px; }
+      .timer-name { font-size: 18px; min-height: 36px; }
       .timer-meta { min-height: 26px; }
-      .timer-info {
-      font-size: 14px; font-size: 11px; }
-      .timer-digital {
-      margin: 10px auto 8px; font-size: 22px; height: 40px; }
-      .card-hint {
-      font-size: 12px; font-size: 10px; }
+      .timer-info { font-size: 11px; }
+      .timer-digital { font-size: 22px; height: 40px; }
+      .card-hint { font-size: 10px; }
       .settings-grid { grid-template-columns: 58px 1.4fr 1.4fr; }
       .field, .wheel { height: 36px; font-size: 14px; }
       .wheel { width: 68px; }
@@ -305,7 +296,7 @@
     function clampDuration(minutes) { return clamp(minutes, 0, 780); }
 
     function saveToStorage() {
-      const settings = items.map(({ id, name, durationMin }) => ({ id, name, durationMin }));
+      const settings = items.map(({ id, name, durationMin, startedAt }) => ({ id, name, durationMin, startedAt }));
       localStorage.setItem('foodTimerSettingsV5', JSON.stringify(settings));
       localStorage.setItem('foodTimerSoundV5', JSON.stringify(soundOn));
     }
@@ -319,7 +310,8 @@
             return found ? {
               ...item,
               name: found.name || item.name,
-              durationMin: clampDuration(Number(found.durationMin) || item.durationMin)
+              durationMin: clampDuration(Number(found.durationMin) || item.durationMin),
+              startedAt: found.startedAt ? Number(found.startedAt) : item.startedAt
             } : item;
           });
         }
@@ -580,7 +572,7 @@
         <div class="${cardClass}" data-card-id="${item.id}">
           <div class="timer-name">${escapeHtml(item.name)}</div>
           <div class="timer-meta">
-            <div class="timer-info"><strong>${formatShortDuration(item.durationMin)}</strong> · ${statusText}</div>
+            <div class="timer-info"><strong>${formatShortDuration(item.durationMin)}</strong>${statusText ? ' · ' + statusText : ''}</div>
             <div class="timer-info">Started: ${formatClockTime(item.startedAt)}</div>
           </div>
           <div class="${digitalClass}">${digitalText}</div>
@@ -624,6 +616,7 @@
       if (!item) return;
       item.startedAt = Date.now();
       alerted[id] = false;
+      saveToStorage();
       renderAllTimers();
     }
 
@@ -632,6 +625,7 @@
       if (!item) return;
       item.startedAt = Date.now();
       alerted[id] = false;
+      saveToStorage();
       renderAllTimers();
     }
 
@@ -640,6 +634,7 @@
       if (!item) return;
       item.startedAt = null;
       alerted[id] = false;
+      saveToStorage();
       renderAllTimers();
     }
 
@@ -650,6 +645,7 @@
           alerted[item.id] = false;
         }
       }
+      saveToStorage();
       renderAllTimers();
     }
 
@@ -658,6 +654,7 @@
         item.startedAt = null;
         alerted[item.id] = false;
       }
+      saveToStorage();
       renderAllTimers();
     }
 
@@ -722,6 +719,10 @@
       formatLiveHeader();
       renderAllTimers();
     }, 1000);
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) renderAllTimers();
+    });
   </script>
 </body>
 </html>
